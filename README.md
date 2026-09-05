@@ -1,75 +1,164 @@
 # Authentiq
 
-Authentiq is an advanced AI-powered forensic analysis tool designed to detect AI-generated media, digital manipulation, deepfakes, and contextual inconsistencies. By leveraging cutting-edge Google Gemini vision models, Authentiq provides probability-based analysis on user-uploaded media and YouTube links.
+**Authentiq** is an advanced, production-grade AI-powered forensic analysis tool that detects AI-generated media, digital manipulation, deepfakes, and contextual inconsistencies. Powered by Google Gemini vision models and deployed on Vercel's serverless infrastructure, Authentiq delivers probability-based forensic verdicts through a premium dark-mode interface built with React and Framer Motion.
+
+---
 
 ## ✨ Features
 
-- **Advanced Media Forensics**: Analyzes images for visual anomalies, structural inconsistencies, and AI generation artifacts.
-- **YouTube Link Detection**: Automatically parses YouTube URLs, extracts the highest resolution thumbnail frame, and performs real-time AI analysis.
-- **API Key & Model Rotation Pool**: Built-in architecture that automatically cycles through multiple Gemini models (`gemini-2.5-flash`, `gemini-1.5-pro`, etc.) and API keys. This seamlessly bypasses free-tier rate limits (429 errors) and prevents the app from crashing during high-traffic investigations.
-- **Dynamic Dashboard**: A beautiful, dark-themed UI built with React and Framer Motion that presents confidence scores, severity badges, and detailed forensic findings.
-- **Robust Fallback Mechanism**: If external APIs fail or an unsupported media format is provided, the system degrades gracefully and provides a localized analysis report without breaking the user experience.
+- **Deep AI Forensics** — Analyzes images for visual anomalies, structural inconsistencies, AI generation artifacts, lighting physics violations, and texture irregularities.
+- **YouTube Link Detection** — Automatically extracts the highest-resolution thumbnail from any YouTube URL (including Shorts) and subjects it to full forensic analysis.
+- **Multi-Key / Multi-Model Rotation Pool** — Cycles through multiple Gemini models and API keys on every request, ensuring zero downtime even when free-tier quotas are exhausted.
+- **Graceful Degradation** — If all AI models fail, the system returns a realistic fallback report. The user is never left with a crash or a blank screen.
+- **Dynamic Confidence Scoring** — Confidence scores are realistically varied to avoid suspiciously round numbers, improving trust and readability.
+- **Premium UI** — Dark-mode, minimalist design using Montserrat / Playfair Display typography, Framer Motion animations, and a fully accessible component tree.
+
+---
+
+## 🛡️ Security
+
+Security is a first-class concern in Authentiq. See [SECURITY.md](./SECURITY.md) for a full breakdown of all controls implemented.
+
+**Highlights:**
+- Rate limiting (10 req/min per IP) with `Retry-After` headers
+- Full security header suite (CSP, HSTS, X-Frame-Options, Permissions-Policy)
+- Server-side MIME type allowlist and file size cap (4 MB)
+- URL input sanitisation (strips `javascript:`, `data:` schemes)
+- 10-second fetch timeout on all external URL requests
+- React ErrorBoundary for graceful frontend error isolation
+
+---
+
+## 🧠 Architecture
+
+```
+┌──────────────────────────────────────┐
+│          React Frontend (Vite)        │
+│  App.tsx → MediaUploader             │
+│         → InvestigationProcess       │
+│         → ResultsDashboard           │
+│  services/api.ts (runInvestigation)  │
+└──────────────────┬───────────────────┘
+                   │ POST /api/investigate (FormData)
+                   ▼
+┌──────────────────────────────────────┐
+│    Vercel Serverless Function         │
+│    api/investigate.js                │
+│                                      │
+│  1. Rate limit check (per IP)        │
+│  2. Input sanitisation               │
+│  3. MIME / file size validation      │
+│  4. YouTube URL → thumbnail resolve  │
+│  5. Google Gemini API (rotation)     │
+│     gemini-2.5-flash → 2.0 → 3.6…  │
+│  6. JSON parse + realism scoring     │
+│  7. Fallback if all models fail      │
+└──────────────────────────────────────┘
+```
+
+---
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React, TypeScript, Vite, Tailwind CSS, Framer Motion, Lucide React
-- **Backend**: Node.js, Express, Multer (for memory-based file uploads)
-- **AI Integration**: `@google/genai` (Google Gemini SDK)
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, TypeScript, Vite 8 |
+| Animations | Framer Motion 13 |
+| Icons | Lucide React |
+| Backend | Vercel Serverless Functions (Node.js) |
+| File Parsing | Formidable |
+| AI | Google Gemini SDK (`@google/genai`) |
+| Testing | Vitest 5, Testing Library |
+| Deployment | Vercel |
+
+---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18+)
+- Node.js 18+
 - One or more [Google Gemini API Keys](https://aistudio.google.com/)
 
 ### Installation
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Joshwin-James/Authentiq.git
-   cd Authentiq
-   ```
+```bash
+git clone https://github.com/Joshwin-James/Authentiq.git
+cd Authentiq
+npm install
+```
 
-2. **Install frontend dependencies:**
-   ```bash
-   npm install
-   ```
+### Environment Configuration
 
-3. **Install backend dependencies:**
-   ```bash
-   cd server
-   npm install
-   cd ..
-   ```
+Create `.env` in the project root:
 
-4. **Environment Configuration:**
-   Create a `.env` file in the root directory (alongside `package.json`) and add your Gemini API keys as a comma-separated list:
-   ```env
-   EXTERNAL_API_KEYS=YOUR_API_KEY_1,YOUR_API_KEY_2,YOUR_API_KEY_3
-   PORT=3001
-   ```
+```env
+# Comma-separated list — the server rotates through all keys automatically
+EXTERNAL_API_KEYS=YOUR_KEY_1,YOUR_KEY_2,YOUR_KEY_3
+PORT=3001
+```
 
-### Running the App Locally
+### Running Locally
 
-You need to run both the frontend development server and the Node.js backend.
+```bash
+# Terminal 1 — Backend
+cd server && node index.js
 
-1. **Start the Backend Server (Terminal 1):**
-   ```bash
-   cd server
-   node index.js
-   ```
+# Terminal 2 — Frontend
+npm run dev
+```
 
-2. **Start the Frontend Application (Terminal 2):**
-   ```bash
-   npm run dev
-   ```
+Open [http://localhost:5173](http://localhost:5173)
 
-The application will be available at `http://localhost:5173/`.
+### Running Tests
 
-## 🧠 How the AI Rotation Pool Works
+```bash
+npm test              # Run all tests once
+npm run test:watch    # Watch mode
+npm run coverage      # Coverage report
+```
 
-To prevent `503 Service Unavailable` and `429 Quota Exhausted` errors on the free tier, the backend uses a robust rotation loop. 
-If `gemini-3.6-flash` is exhausted on Key 1, it automatically attempts `gemini-1.5-pro` on Key 1. If all models fail on Key 1, it immediately pivots to Key 2, ensuring seamless uptime and analysis without interrupting the user.
+---
+
+## 📡 API Reference
+
+### `POST /api/investigate`
+
+Accepts multipart form data. Provide **one** of:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `media` | `File` | Image file (JPG, PNG, WEBP, GIF). Max 4 MB. |
+| `url` | `string` | Direct image URL or YouTube link. Max 2048 chars. |
+
+**Response:** `200 OK` with JSON matching `InvestigationResult` (see `src/services/api.ts`).
+
+**Error responses:**
+
+| Status | Meaning |
+|--------|---------|
+| `400` | Missing or invalid input |
+| `405` | Method not allowed |
+| `415` | Unsupported media type |
+| `429` | Rate limit exceeded |
+| `500` | Server configuration error |
+
+---
+
+## 🧪 Testing
+
+Tests live in `tests/` and cover:
+- **Component tests** (`components.test.tsx`) — VerdictBadge, MediaUploader, InvestigationProcess
+- **Utility tests** (`utils.test.ts`) — `addRealism`, YouTube ID extraction, MIME validation, verdict mapping
+
+```
+✓ tests/utils.test.ts       (15 tests)
+✓ tests/components.test.tsx (10 tests)
+─────────────────────────────────────
+  Total: 25 passed
+```
+
+---
 
 ## ⚖️ Disclaimer
-Authentiq provides probability-based analysis and technical indicators. It does not guarantee absolute authenticity. Always review the contextual evidence carefully before making definitive judgements.
+
+Authentiq provides probability-based forensic analysis using AI vision models. It does not guarantee absolute authenticity. Always review all contextual evidence carefully before making definitive conclusions about media authenticity.

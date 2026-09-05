@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Hero } from './components/Hero';
 import { MediaUploader } from './components/MediaUploader';
 import { InvestigationProcess } from './components/InvestigationProcess';
@@ -14,11 +14,21 @@ function App() {
   const [investigationStage, setInvestigationStage] = useState(0);
   const [result, setResult] = useState<InvestigationResult | null>(null);
   
-  const handleInvestigate = (data: {type: 'file'|'url', value: string, file?: File}) => {
-    setMediaData(data);
-    setAppState('investigating');
+  const handleInvestigate = useCallback(
+    (data: {type: 'file'|'url', value: string, file?: File}) => {
+      setMediaData(data);
+      setAppState('investigating');
+      setInvestigationStage(0);
+    },
+    []
+  );
+
+  const handleReset = useCallback(() => {
+    setAppState('idle');
+    setMediaData(null);
+    setResult(null);
     setInvestigationStage(0);
-  };
+  }, []);
 
   useEffect(() => {
     if (appState === 'investigating' && mediaData) {
@@ -42,12 +52,6 @@ function App() {
     }
   }, [appState, mediaData]);
 
-  const handleReset = () => {
-    setAppState('idle');
-    setMediaData(null);
-    setResult(null);
-    setInvestigationStage(0);
-  };
 
   return (
     <ErrorBoundary>

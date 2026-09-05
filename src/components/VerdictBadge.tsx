@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import type { VerdictType } from '../services/api';
 
@@ -7,7 +7,20 @@ interface VerdictBadgeProps {
   showIcon?: boolean;
 }
 
-export const VerdictBadge: React.FC<VerdictBadgeProps> = ({ verdict, showIcon = true }) => {
+/** Maps a verdict string to a human-readable label. */
+export const getVerdictLabel = (verdict: VerdictType): string => {
+  switch (verdict) {
+    case 'LIKELY_AUTHENTIC': return 'Likely Authentic';
+    case 'REQUIRES_VERIFICATION': return 'Requires Verification';
+    case 'LIKELY_MANIPULATED': return 'Likely Manipulated';
+  }
+};
+
+/**
+ * Displays a colour-coded badge representing the AI's forensic verdict.
+ * Uses memo to avoid unnecessary re-renders when parent state changes.
+ */
+export const VerdictBadge: React.FC<VerdictBadgeProps> = memo(({ verdict, showIcon = true }) => {
   const getStyles = () => {
     switch (verdict) {
       case 'LIKELY_AUTHENTIC':
@@ -15,30 +28,33 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({ verdict, showIcon = 
           color: 'var(--verdict-authentic)',
           backgroundColor: 'var(--verdict-authentic-bg)',
           borderColor: 'var(--verdict-authentic-border)',
-          icon: <CheckCircle size={16} />
+          icon: <CheckCircle size={16} aria-hidden="true" />
         };
       case 'REQUIRES_VERIFICATION':
         return {
           color: 'var(--verdict-verify)',
           backgroundColor: 'var(--verdict-verify-bg)',
           borderColor: 'var(--verdict-verify-border)',
-          icon: <AlertTriangle size={16} />
+          icon: <AlertTriangle size={16} aria-hidden="true" />
         };
       case 'LIKELY_MANIPULATED':
         return {
           color: 'var(--verdict-manipulated)',
           backgroundColor: 'var(--verdict-manipulated-bg)',
           borderColor: 'var(--verdict-manipulated-border)',
-          icon: <XCircle size={16} />
+          icon: <XCircle size={16} aria-hidden="true" />
         };
     }
   };
 
   const styles = getStyles();
+  const label = getVerdictLabel(verdict);
 
   return (
-    <div 
-      className="flex items-center gap-2" 
+    <div
+      role="status"
+      aria-label={`Verdict: ${label}`}
+      className="flex items-center gap-2"
       style={{
         display: 'inline-flex',
         padding: '0.5rem 1rem',
@@ -53,11 +69,9 @@ export const VerdictBadge: React.FC<VerdictBadgeProps> = ({ verdict, showIcon = 
       }}
     >
       {showIcon && styles.icon}
-      <span>
-        {verdict === 'LIKELY_AUTHENTIC' && 'Likely Authentic'}
-        {verdict === 'REQUIRES_VERIFICATION' && 'Requires Verification'}
-        {verdict === 'LIKELY_MANIPULATED' && 'Likely Manipulated'}
-      </span>
+      <span>{label}</span>
     </div>
   );
-};
+});
+
+VerdictBadge.displayName = 'VerdictBadge';
