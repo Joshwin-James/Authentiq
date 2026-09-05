@@ -1,9 +1,8 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, Circle, Loader2 } from 'lucide-react';
 
 interface InvestigationProcessProps {
-  onComplete: () => void;
   currentStage: number;
 }
 

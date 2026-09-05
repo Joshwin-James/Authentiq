@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { VerdictBadge } from './VerdictBadge';
-import { AlertCircle, ChevronDown, Activity, Globe, Scale, Fingerprint, CalendarClock, ExternalLink, Info, AlertTriangle } from 'lucide-react';
+import { AlertCircle, ChevronDown, Activity, Globe, Scale, Fingerprint, CalendarClock, Info, AlertTriangle } from 'lucide-react';
 import type { InvestigationResult, Finding, SeverityType } from '../services/api';
 
 interface ResultsDashboardProps {
