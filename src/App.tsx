@@ -3,6 +3,7 @@ import { Hero } from './components/Hero';
 import { MediaUploader } from './components/MediaUploader';
 import { InvestigationProcess } from './components/InvestigationProcess';
 import { ResultsDashboard } from './components/ResultsDashboard';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'framer-motion';
 import { runInvestigation } from './services/api';
 import type { InvestigationResult } from './services/api';
@@ -49,29 +50,36 @@ function App() {
   };
 
   return (
+    <ErrorBoundary>
     <>
-      <header style={{ 
-        position: 'sticky', top: 0, zIndex: 10, 
-        backgroundColor: 'rgba(5, 5, 5, 0.8)', 
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid var(--border-subtle)',
-        padding: '1rem 0'
-      }}>
+      <header
+        role="banner"
+        style={{ 
+          position: 'sticky', top: 0, zIndex: 10, 
+          backgroundColor: 'rgba(5, 5, 5, 0.8)', 
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid var(--border-subtle)',
+          padding: '1rem 0'
+        }}>
         <div className="container flex justify-between items-center">
           <div 
             className="flex items-center gap-2" 
             style={{ fontWeight: 800, fontSize: '1.5rem', letterSpacing: '0.05em', cursor: 'pointer', textTransform: 'uppercase', fontFamily: 'var(--font-heading)' }}
             onClick={handleReset}
+            role="link"
+            tabIndex={0}
+            aria-label="Authentiq home"
+            onKeyDown={(e) => e.key === 'Enter' && handleReset()}
           >
             Authentiq
           </div>
-          <nav className="flex gap-8" style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
-            <button onClick={handleReset} style={{ color: 'var(--text-primary)', letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600 }} className="hover:text-primary transition-colors">Home</button>
+          <nav aria-label="Main navigation" className="flex gap-8" style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)' }}>
+            <button onClick={handleReset} aria-label="Go to home page" style={{ color: 'var(--text-primary)', letterSpacing: '0.1em', textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 600 }} className="hover:text-primary transition-colors">Home</button>
           </nav>
         </div>
       </header>
 
-      <main>
+      <main role="main" aria-label="Authentiq media investigation">
         <AnimatePresence mode="wait">
           {appState === 'idle' && (
             <motion.div 
@@ -89,6 +97,9 @@ function App() {
           {appState === 'investigating' && (
             <motion.div 
               key="investigating"
+              role="status"
+              aria-live="polite"
+              aria-label="Investigation in progress"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
@@ -113,6 +124,7 @@ function App() {
         </AnimatePresence>
       </main>
     </>
+    </ErrorBoundary>
   );
 }
 

@@ -8,6 +8,34 @@ export const config = {
   },
 };
 
+// ─── In-memory rate limiter (per IP, max 10 requests per minute) ──────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60 * 1000;
+
+const isRateLimited = (ip: string): boolean => {
+  const now = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT) return true;
+  entry.count++;
+  return false;
+};
+
+// ─── Input sanitization ────────────────────────────────────────────────────────
+const sanitizeUrl = (input: string): string => {
+  // Strip any javascript: or data: schemes, trim whitespace
+  return input.trim().replace(/^(javascript|data|vbscript):/i, '');
+};
+
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+]);
+
+
 const addRealism = (val) => {
   const base = val || 50;
   const varied = base + (Math.random() * 3 - 1.2);
@@ -55,19 +83,33 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Rate limiting
+  const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket?.remoteAddress || 'unknown';
+  if (isRateLimited(ip)) {
+    return res.status(429).json({ error: 'Too many requests. Please wait a moment and try again.' });
+  }
 
   try {
     // Parse multipart form data
     const form = formidable({ maxFileSize: 10 * 1024 * 1024 }); // 10MB limit
     const [fields, files] = await form.parse(req);
 
-    const url = fields.url?.[0] || null;
+    const rawUrl = fields.url?.[0] || null;
+    const url = rawUrl ? sanitizeUrl(rawUrl) : null;
     const uploadedFile = files.media?.[0] || null;
 
     if (!uploadedFile && !url) {
       return res.status(400).json({ error: 'No media provided' });
+    }
+
+    // Validate uploaded file MIME type
+    if (uploadedFile && !ALLOWED_MIME_TYPES.has(uploadedFile.mimetype)) {
+      return res.status(415).json({ error: `Unsupported file type: ${uploadedFile.mimetype}. Please upload JPG, PNG, WEBP, or GIF.` });
     }
 
     let inlineData = null;
