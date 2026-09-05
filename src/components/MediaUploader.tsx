@@ -42,13 +42,26 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onInvestigate }) =
   };
 
   const handleFile = (file: File) => {
-    // Validate type
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/quicktime', 'audio/mpeg', 'audio/wav'];
-    if (!validTypes.includes(file.type)) {
-      alert("Unsupported file type. Please upload a JPG, PNG, WEBP, MP4, MOV, MP3, or WAV file.");
+    // Block video/audio — Vercel serverless has a 4.5MB upload limit.
+    // Videos must be submitted via URL (YouTube link supported).
+    if (file.type.startsWith('video/') || file.type.startsWith('audio/')) {
+      setActiveTab('url');
+      alert('Video & audio files are too large to upload directly.\n\nPaste a YouTube or direct video URL in the URL tab instead — we\'ll automatically extract and analyze it!');
       return;
     }
-    
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      alert('Unsupported file type. Please upload a JPG, PNG, WEBP, or GIF image.');
+      return;
+    }
+
+    // Image size guard (4MB to stay under Vercel limit)
+    if (file.size > 4 * 1024 * 1024) {
+      alert('Image is too large (max 4MB). Please compress it and try again.');
+      return;
+    }
+
     setSelectedFile(file);
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
@@ -151,22 +164,25 @@ export const MediaUploader: React.FC<MediaUploaderProps> = ({ onInvestigate }) =
                     ref={fileInputRef} 
                     onChange={(e) => e.target.files && handleFile(e.target.files[0])} 
                     style={{ display: 'none' }} 
-                    accept=".jpg,.jpeg,.png,.webp,.mp4,.mov,.mp3,.wav"
+                    accept=".jpg,.jpeg,.png,.webp,.gif"
                   />
                   <div style={{ padding: '1rem', border: '1px solid var(--border-subtle)', backgroundColor: 'transparent' }}>
                     <UploadCloud size={24} color={dragActive ? 'var(--text-primary)' : 'var(--text-secondary)'} />
                   </div>
                   <div>
-                    <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Drag and drop media</p>
+                    <p style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Drag and drop an image</p>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.05em' }}>or click to browse</p>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', marginTop: '1.5rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                    Supports JPG, PNG, WEBP, MP4, MOV, MP3, WAV
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', marginTop: '0.75rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    Supports JPG, PNG, WEBP, GIF — Max 4MB
+                  </p>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.65rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                    For videos, use the <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Paste URL</span> tab (YouTube supported)
                   </p>
                 </div>
               ) : (
                 <div className="flex flex-col gap-6" style={{ padding: '2rem 0' }}>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Provide a direct link to the media file for investigation.</p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Paste a YouTube link, video URL, or direct image URL for investigation.</p>
                   <div style={{ position: 'relative' }}>
                     <LinkIcon size={16} style={{ position: 'absolute', left: '1.5rem', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
                     <input 
